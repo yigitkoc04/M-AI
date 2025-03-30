@@ -1,1 +1,7 @@
 .DS_Store
+node_modules
+.idea
+.next
+next-env.d.ts
+go.sum
+package-lock.json
