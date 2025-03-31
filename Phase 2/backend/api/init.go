@@ -14,14 +14,17 @@ func InitRouter(db *gorm.DB) *gin.Engine {
 	authRepo := repository.NewAuthRepository()
 	resourceRepo := &repository.ResourceRepository{}
 	problemRepo := &repository.ProblemRepository{}
+	dashboardRepo := &repository.DashboardRepository{}
 
 	authService := service.NewAuthService(db, authRepo)
 	resourceService := service.NewResourceService(db, resourceRepo)
 	problemService := service.NewProblemService(db, problemRepo)
+	dashboardService := service.NewDashboardService(db, dashboardRepo)
 
 	authRouter := router.NewAuthRouter(authService)
 	resourceRouter := router.NewResourceRouter(resourceService)
 	problemRouter := router.NewProblemRouter(problemService)
+	dashboardRouter := router.NewDashboardRouter(dashboardService)
 
 	r := gin.Default()
 
@@ -39,6 +42,7 @@ func InitRouter(db *gorm.DB) *gin.Engine {
 		authRouter.RegisterRoutes(apiV1)
 		resourceRouter.RegisterRoutes(apiV1)
 		problemRouter.RegisterRoutes(apiV1)
+		dashboardRouter.RegisterRoutes(apiV1)
 	}
 
 	return r
