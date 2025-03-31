@@ -1,8 +1,8 @@
 package router
 
 import (
-	"M-AI/api/dto"
 	"M-AI/api/model"
+	"M-AI/api/requests"
 	"M-AI/api/service"
 	"M-AI/api/utils"
 	"M-AI/internal/config"
@@ -27,7 +27,7 @@ func (r *ProblemRouter) RegisterRoutes(router *gin.RouterGroup) {
 }
 
 func (r *ProblemRouter) CreateProblem(c *gin.Context) {
-	var req dto.CreateProblemRequest
+	var req requests.CreateProblemRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.SendError(c, http.StatusBadRequest, err.Error())
 		return

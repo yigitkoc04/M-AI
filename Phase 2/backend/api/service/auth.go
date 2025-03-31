@@ -64,8 +64,8 @@ func (s *AuthService) AuthenticateUser(email, password string) (dto.AuthUserDTO,
 	return result, nil
 }
 
-func (s *AuthService) GetUserByID(userID uint) (dto.AuthUserDTO, error) {
-	var result dto.AuthUserDTO
+func (s *AuthService) GetUserByID(userID uint) (model.User, error) {
+	var result model.User
 	err := db.TransactionExecutor(s.db, func(tx *gorm.DB) error {
 		user, err := s.authRepo.GetUserByID(tx, userID)
 		if err != nil {

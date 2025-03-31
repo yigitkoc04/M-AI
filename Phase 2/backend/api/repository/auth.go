@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"M-AI/api/dto"
 	"M-AI/api/model"
 	"errors"
 	"gorm.io/gorm"
@@ -29,18 +28,18 @@ func (r *AuthRepository) GetUserByEmail(db *gorm.DB, email string) (model.User, 
 	return user, nil
 }
 
-func (r *AuthRepository) GetUserByID(db *gorm.DB, userID uint) (dto.AuthUserDTO, error) {
-	var userDTO dto.AuthUserDTO
+func (r *AuthRepository) GetUserByID(db *gorm.DB, userID uint) (model.User, error) {
+	var userDTO model.User
 	err := db.Model(&model.User{}).
-		Select("id, name, email, role").
+		Select("id, name, email, password").
 		Where("id = ? AND deleted_at IS NULL", userID).
 		First(&userDTO).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.AuthUserDTO{}, errors.New("user not found")
+			return model.User{}, errors.New("user not found")
 		}
-		return dto.AuthUserDTO{}, err
+		return model.User{}, err
 	}
 	return userDTO, nil
 }
