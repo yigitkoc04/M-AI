@@ -1,12 +1,33 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/context/AuthContext"
+import DashboardAPI, { DashboardStats } from "@/lib/api/dashboard"
 import { BookOpen, Calculator, CheckCircle, Target, AlertTriangle, BarChart, PieChart } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await DashboardAPI.getStats()
+        setStats(res.data.data)
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          <span className="text-gradient">Welcome back, Alex</span>
+          <span className="text-gradient">Welcome back, {user?.name}</span>
         </h1>
         <p className="text-muted-foreground">
           Track your progress and continue learning mathematics with AI assistance.
@@ -22,8 +43,7 @@ export default function DashboardPage() {
             <BookOpen className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">24</div>
-            <p className="text-xs text-muted-foreground">+2 from last week</p>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats?.quizzes_completed}</div>
           </CardContent>
         </Card>
         <Card className="shadow-soft hover-lift overflow-hidden">
@@ -33,8 +53,7 @@ export default function DashboardPage() {
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">87%</div>
-            <p className="text-xs text-muted-foreground">+2% from last week</p>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats?.accuracy_rate}%</div>
           </CardContent>
         </Card>
         <Card className="shadow-soft hover-lift overflow-hidden">
@@ -44,8 +63,7 @@ export default function DashboardPage() {
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">Statistics</div>
-            <p className="text-xs text-muted-foreground">45% accuracy rate</p>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats?.most_challenging_topic}</div>
           </CardContent>
         </Card>
       </div>

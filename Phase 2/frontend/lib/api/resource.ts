@@ -1,11 +1,12 @@
+import { ApiResponse } from './auth';
 import axios from './axios';
 
 export interface Resource {
     id: number;
     title: string;
     description: string;
-    url: string;
-    topic: string;
+    link: string;
+    topic: string[];
     level: string;
     createdAt: string;
 }
@@ -19,7 +20,7 @@ const ResourceAPI = {
 
         const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
-        return axios.get<Resource[]>(`/resources${queryString}`, {
+        return axios.get<ApiResponse<Resource[]>>(`/resources${queryString}`, {
             withCredentials: true,
         });
     },

@@ -1,9 +1,10 @@
+import { ApiResponse } from './auth';
 import axios from './axios';
 
 export interface DashboardStats {
-    totalQuizzes: number;
-    accuracyRate: number;
-    mostChallengingTopic: string;
+    quizzes_completed: number;
+    accuracy_rate: number;
+    most_challenging_topic: string;
 }
 
 export interface RecentActivityItem {
@@ -27,19 +28,19 @@ export interface ChallengingTopicItem {
 
 const DashboardAPI = {
     getStats: () => {
-        return axios.get<DashboardStats>('/dashboard/stats', { withCredentials: true });
+        return axios.get<ApiResponse<DashboardStats>>('/dashboard/stats', { withCredentials: true });
     },
 
     getRecentActivity: () => {
-        return axios.get<RecentActivityItem[]>('/dashboard/recent', { withCredentials: true });
+        return axios.get<ApiResponse<RecentActivityItem[]>>('/dashboard/recent', { withCredentials: true });
     },
 
     getTopicProficiency: () => {
-        return axios.get<TopicProficiencyItem[]>('/dashboard/proficiency', { withCredentials: true });
+        return axios.get<ApiResponse<TopicProficiencyItem[]>>('/dashboard/proficiency', { withCredentials: true });
     },
 
     getChallengingTopics: () => {
-        return axios.get<ChallengingTopicItem[]>('/dashboard/challenges', { withCredentials: true });
+        return axios.get<ApiResponse<ChallengingTopicItem[]>>('/dashboard/challenges', { withCredentials: true });
     },
 };
 

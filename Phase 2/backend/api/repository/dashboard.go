@@ -13,7 +13,7 @@ func (r *DashboardRepository) GetDashboardStats(db *gorm.DB, userID uint) (dto.D
 	err := db.Raw(`
 		SELECT 
 			COUNT(DISTINCT q.id) AS quizzes_completed,
-			ROUND(100.0 * SUM(CASE WHEN ul.correct_answer THEN 1 ELSE 0 END)::float / NULLIF(COUNT(ul.id), 0), 2) AS accuracy_rate,
+ 		 	ROUND((100.0 * SUM(CASE WHEN ul.correct_answer THEN 1 ELSE 0 END)::float / NULLIF(COUNT(ul.id), 0))::numeric, 2) AS accuracy_rate,
 			COALESCE((
 				SELECT topic
 				FROM (
@@ -25,7 +25,7 @@ func (r *DashboardRepository) GetDashboardStats(db *gorm.DB, userID uint) (dto.D
 					ORDER BY wrong_count DESC
 					LIMIT 1
 				) AS sub
-			), '') AS most_challenging_topic
+			), 'Number') AS most_challenging_topic
 		FROM user_log ul
 		LEFT JOIN question qn ON ul.question_id = qn.id
 		LEFT JOIN quiz q ON q.id = qn.quiz_id

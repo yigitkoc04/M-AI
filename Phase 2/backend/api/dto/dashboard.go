@@ -3,26 +3,26 @@ package dto
 import "time"
 
 type DashboardStats struct {
-	QuizzesCompleted     int64
-	AccuracyRate         float64
-	MostChallengingTopic string
+	QuizzesCompleted     int64   `json:"quizzes_completed"`
+	AccuracyRate         float64 `json:"accuracy_rate"`
+	MostChallengingTopic string  `json:"most_challenging_topic"`
 }
 
 type RecentActivity struct {
-	Type      string // "quiz" or "problem"
-	Title     string
-	Timestamp time.Time
+	Type      string    `json:"type"`
+	Title     string    `json:"title"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type TopicProficiency struct {
-	Topic   string
-	Correct int64
-	Total   int64
+	Topic   string `json:"topic"`
+	Correct int64  `json:"correct"`
+	Total   int64  `json:"total"`
 }
 
 type ChallengingTopic struct {
-	Topic      string
-	Wrong      int64
-	Total      int64
-	Percentage float64
+	Topic      string  `json:"topic"`
+	Wrong      int64   `json:"wrong"`
+	Total      int64   `json:"total"`
+	Percentage float64 `json:"percentage"`
 }
