@@ -24,7 +24,7 @@ type Config struct {
 		Salt      string `mapstructure:"salt"`
 	}
 
-	OpanAi struct {
+	OpenAi struct {
 		ApiKey string `mapstructure:"api_key"`
 	}
 }
