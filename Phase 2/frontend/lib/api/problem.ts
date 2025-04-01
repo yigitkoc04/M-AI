@@ -1,11 +1,5 @@
 import axios from './axios';
 
-export interface CreateProblemRequest {
-    topic: string;
-    title: string;
-    question: string;
-}
-
 export interface Problem {
     id: number;
     topic: string;
@@ -13,6 +7,10 @@ export interface Problem {
     question: string;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface CreateProblemRequest {
+    question: string;
 }
 
 const ProblemAPI = {

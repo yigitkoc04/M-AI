@@ -23,7 +23,8 @@ func InitRouter(db *gorm.DB) *gin.Engine {
 
 	authRouter := router.NewAuthRouter(authService)
 	resourceRouter := router.NewResourceRouter(resourceService)
-	problemRouter := router.NewProblemRouter(problemService)
+	openAIService := service.NewOpenAIService()
+	problemRouter := router.NewProblemRouter(problemService, openAIService)
 	dashboardRouter := router.NewDashboardRouter(dashboardService)
 
 	r := gin.Default()
@@ -36,6 +37,11 @@ func InitRouter(db *gorm.DB) *gin.Engine {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("X-Accel-Buffering", "no")
+		c.Next()
+	})
 
 	apiV1 := r.Group("/api/v1")
 	{

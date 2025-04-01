@@ -7,41 +7,102 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calculator, ChevronRight, Image, Lightbulb, Trash2, Upload, Sparkles, Target, CheckCircle } from "lucide-react"
+import { Calculator, Image, Trash2, Upload, PenLine } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { MarkdownSolution } from "@/components/markdown-solution"
 
 export default function ProcessPage() {
   const [problem, setProblem] = useState("")
   const [solution, setSolution] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [activeStep, setActiveStep] = useState(0)
-  const [showHint, setShowHint] = useState(false)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [inputMethod, setInputMethod] = useState<"text" | "image">("text")
+
+  const streamSolution = async (question: string) => {
+    const response = await fetch("http://localhost:8080/api/v1/problems", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ question }),
+    })
+
+    if (!response.ok || !response.body) {
+      throw new Error("Failed to connect to GPT stream.")
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value, { stream: true })
+
+      // Skip `: ping` lines if they appear
+      if (chunk.startsWith(": ping")) continue
+
+      // Append directly (no buffering, no splitting)
+      setSolution((prev) => prev + chunk)
+    }
+  }
+
+  const streamSolutionFromImage = async (imageBase64: string, context: string) => {
+    const response = await fetch("http://localhost:8080/api/v1/problems/image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ imageBase64, context }),
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error("Failed to connect to GPT stream.");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+
+      // Skip `: ping` lines from the SSE stream
+      if (chunk.startsWith(": ping")) continue;
+
+      // Update solution incrementally
+      setSolution((prev) => prev + chunk);
+    }
+  };
 
   const handleSolve = async () => {
-    if (!problem.trim() && !uploadedImage) return
+    if ((inputMethod === "text" && !problem.trim()) || (inputMethod === "image" && !uploadedImage)) {
+      return
+    }
 
+    setSolution("")
     setLoading(true)
-    setSolution(null)
-    setActiveStep(0)
-    setShowHint(false)
 
     try {
-      const { text } = await generateText({
-        model: openai("gpt-4o"),
-        prompt: `Solve this math problem step by step: ${problem}${uploadedImage ? " (User has also uploaded an image of the problem)" : ""}`,
-        system:
-          "You are a helpful math tutor. Break down the solution into clear, numbered steps. Use markdown for formatting and LaTeX for equations. Keep explanations concise but thorough.",
-      })
+      if (inputMethod === "text") {
+        await streamSolution(problem.trim())
+      } else if (inputMethod === "image" && uploadedImage) {
+        // Strip the data:image/... prefix
+        const imageBase64 = uploadedImage.split(",")[1]
 
-      setSolution(text)
-    } catch (error) {
-      console.error("Error solving problem:", error)
-      setSolution("Sorry, there was an error solving this problem. Please try again.")
+        const context = problem.trim()
+          ? problem.trim()
+          : "Please analyze this image and solve the math problem shown."
+
+        await streamSolutionFromImage(imageBase64, context)
+      }
+    } catch (err) {
+      console.error("Streaming error:", err)
     } finally {
       setLoading(false)
     }
@@ -50,8 +111,12 @@ export default function ProcessPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Clear any existing image first
+      setUploadedImage(null)
+
       const reader = new FileReader()
       reader.onload = (event) => {
+        // Replace with the new image
         setUploadedImage(event.target?.result as string)
       }
       reader.readAsDataURL(file)
@@ -73,8 +138,12 @@ export default function ProcessPage() {
 
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith("image/")) {
+      // Clear any existing image first
+      setUploadedImage(null)
+
       const reader = new FileReader()
       reader.onload = (event) => {
+        // Replace with the new image
         setUploadedImage(event.target?.result as string)
       }
       reader.readAsDataURL(file)
@@ -92,37 +161,13 @@ export default function ProcessPage() {
     }
   }
 
-  // Mock steps for the solution process with simplified styling
-  const steps = [
-    {
-      title: "Understand the Problem",
-      content: "First, let's identify what we're looking for and what information we have.",
-      color: "from-blue-500 to-indigo-500",
-      bgColor: "bg-blue-500/10",
-      icon: Target,
-    },
-    {
-      title: "Identify the Approach",
-      content: "Based on the problem, we'll use the appropriate mathematical technique.",
-      color: "from-purple-500 to-pink-500",
-      bgColor: "bg-purple-500/10",
-      icon: Lightbulb,
-    },
-    {
-      title: "Apply the Method",
-      content: "Now we'll work through the solution step by step.",
-      color: "from-green-500 to-teal-500",
-      bgColor: "bg-green-500/10",
-      icon: Calculator,
-    },
-    {
-      title: "Verify the Answer",
-      content: "Finally, let's check our answer to make sure it makes sense.",
-      color: "from-amber-500 to-orange-500",
-      bgColor: "bg-amber-500/10",
-      icon: CheckCircle,
-    },
-  ]
+  const clearAll = () => {
+    setProblem("")
+    setUploadedImage(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -140,84 +185,141 @@ export default function ProcessPage() {
             <Calculator className="h-5 w-5 mr-2 text-primary" />
             <CardTitle>Enter Your Problem</CardTitle>
           </div>
-          <CardDescription>Type or paste your math problem below, or upload an image</CardDescription>
+          <CardDescription>Type your problem or upload an image of the problem</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <Textarea
-            placeholder="e.g., Solve for x: 2x + 5 = 13"
-            className="min-h-[120px] border-primary/20 focus-visible:border-primary/50"
-            value={problem}
-            onChange={(e) => setProblem(e.target.value)}
-          />
-
-          <div
-            className={cn(
-              "border-2 border-dashed rounded-md p-6 transition-colors",
-              isDragging ? "border-primary bg-primary/5" : "border-primary/20",
-              uploadedImage ? "bg-muted/30" : "bg-transparent",
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+        <CardContent className="pt-4">
+          <Tabs
+            defaultValue="text"
+            className="w-full"
+            onValueChange={(value) => setInputMethod(value as "text" | "image")}
           >
-            {uploadedImage ? (
-              <div className="space-y-4">
-                <div className="relative mx-auto max-w-xs overflow-hidden rounded-md shadow-md">
-                  <img
-                    src={uploadedImage || "/placeholder.svg"}
-                    alt="Uploaded problem"
-                    className="w-full h-auto object-contain"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-90"
-                    onClick={removeImage}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-center text-sm text-muted-foreground">Image uploaded successfully</p>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger
+                value="text"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
+              >
+                <PenLine className="h-4 w-4 mr-2" />
+                Type Problem
+              </TabsTrigger>
+              <TabsTrigger
+                value="image"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
+              >
+                <Image className="h-4 w-4 mr-2" />
+                Upload Image
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="text" className="space-y-4">
+              <Textarea
+                placeholder="e.g., Solve for x: 2x + 5 = 13"
+                className="min-h-[120px] border-primary/20 focus-visible:border-primary/50"
+                value={problem}
+                onChange={(e) => setProblem(e.target.value)}
+              />
+            </TabsContent>
+
+            <TabsContent value="image" className="space-y-4">
+              <div
+                className={cn(
+                  "border-2 border-dashed rounded-md p-6 transition-colors",
+                  isDragging ? "border-primary bg-primary/5" : "border-primary/20",
+                  uploadedImage ? "bg-muted/30" : "bg-transparent",
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {uploadedImage ? (
+                  <div className="space-y-4">
+                    <div className="relative mx-auto max-w-xs overflow-hidden rounded-md shadow-md">
+                      <img
+                        src={uploadedImage || "/placeholder.svg"}
+                        alt="Uploaded problem"
+                        className="w-full h-auto object-contain"
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 rounded-full opacity-90"
+                          onClick={removeImage}
+                          title="Remove image"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                      <p className="text-center text-sm text-muted-foreground">Image uploaded successfully</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={triggerFileInput}
+                        className="border-primary/20 hover:border-primary/50 text-primary"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Replace Image
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // Keep the existing upload UI for when no image is present
+                  <div className="flex flex-col items-center justify-center space-y-4 text-center">
+                    <div className="rounded-full bg-gradient-to-r from-primary/20 to-accent/20 p-3">
+                      <Image className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Drag and drop your image here</p>
+                      <p className="text-xs text-muted-foreground">Supports JPG, PNG and GIF up to 10MB</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={triggerFileInput}
+                      className="border-primary/20 hover:border-primary/50 text-primary"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Image
+                    </Button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                <div className="rounded-full bg-gradient-to-r from-primary/20 to-accent/20 p-3">
-                  <Image className="h-6 w-6 text-primary" />
-                </div>
+
+              {/* Optional text input for additional context with the image */}
+              {uploadedImage && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Drag and drop your image here</p>
-                  <p className="text-xs text-muted-foreground">Supports JPG, PNG and GIF up to 10MB</p>
+                  <p className="text-sm font-medium">Additional context (optional):</p>
+                  <Textarea
+                    placeholder="Add any additional details about the problem..."
+                    className="min-h-[80px] border-primary/20 focus-visible:border-primary/50"
+                    value={problem}
+                    onChange={(e) => setProblem(e.target.value)}
+                  />
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={triggerFileInput}
-                  className="border-primary/20 hover:border-primary/50 text-primary"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Image
-                </Button>
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-              </div>
-            )}
-          </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => {
-              setProblem("")
-              setUploadedImage(null)
-              if (fileInputRef.current) {
-                fileInputRef.current.value = ""
-              }
-            }}
+            onClick={clearAll}
             className="border-primary/20 hover:border-primary/50 text-primary"
           >
             Clear
           </Button>
           <Button
             onClick={handleSolve}
-            disabled={(!problem.trim() && !uploadedImage) || loading}
+            disabled={
+              (inputMethod === "text" && !problem.trim()) || (inputMethod === "image" && !uploadedImage) || loading
+            }
             className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
           >
             {loading ? (
@@ -233,94 +335,11 @@ export default function ProcessPage() {
       </Card>
 
       {solution && (
-        <Card className="shadow-soft overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-primary to-accent" />
-          <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5">
-            <div className="flex items-center">
-              <Sparkles className="h-5 w-5 mr-2 text-primary" />
-              <CardTitle>Solution Process</CardTitle>
-            </div>
-            <CardDescription>Follow the step-by-step solution to your problem</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <Tabs defaultValue="guided" className="space-y-4">
-              <TabsList className="bg-secondary/50 backdrop-blur-sm">
-                <TabsTrigger
-                  value="guided"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
-                >
-                  Guided Solution
-                </TabsTrigger>
-                <TabsTrigger
-                  value="full"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
-                >
-                  Full Solution
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="guided" className="space-y-4">
-                <div className="space-y-4">
-                  {steps.map((step, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "rounded-lg border p-4 transition-all shadow-soft hover-lift",
-                        index === activeStep ? step.bgColor : "opacity-60",
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className={`rounded-full bg-gradient-to-r ${step.color} p-1.5 mr-2`}>
-                            <step.icon className="h-4 w-4 text-white" />
-                          </div>
-                          <h3 className="font-medium">
-                            Step {index + 1}: {step.title}
-                          </h3>
-                        </div>
-                        {index === activeStep && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowHint(!showHint)}
-                            className="text-primary hover:text-accent hover:bg-primary/10"
-                          >
-                            <Lightbulb className="h-4 w-4 mr-1" />
-                            {showHint ? "Hide Hint" : "Show Hint"}
-                          </Button>
-                        )}
-                      </div>
-                      {(index < activeStep || (index === activeStep && showHint)) && (
-                        <p className="mt-2 text-sm text-muted-foreground ml-9">{step.content}</p>
-                      )}
-                      {index === activeStep && (
-                        <div className="mt-4 flex justify-end">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              if (activeStep < steps.length - 1) {
-                                setActiveStep(activeStep + 1)
-                                setShowHint(false)
-                              }
-                            }}
-                            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
-                          >
-                            Next Step
-                            <ChevronRight className="ml-1 h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="full">
-                <div className="rounded-lg border p-4 prose dark:prose-invert max-w-none shadow-soft">
-                  <div dangerouslySetInnerHTML={{ __html: solution.replace(/\n/g, "<br />") }} />
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <div className="container py-8 max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6">Solution</h1>
+
+          <MarkdownSolution content={solution} />
+        </div>
       )}
     </div>
   )
