@@ -39,7 +39,7 @@ func (r *DashboardRepository) GetRecentActivity(db *gorm.DB, userID uint) ([]dto
 	var activities []dto.RecentActivity
 
 	err := db.Raw(`
-		SELECT 'quiz' AS type, q.topic AS title, MAX(ul.created_at) AS timestamp
+		SELECT 'quiz' AS type, q.title AS title, MAX(ul.created_at) AS timestamp
 		FROM user_log ul
 		JOIN question qn ON ul.question_id = qn.id
 		JOIN quiz q ON q.id = qn.quiz_id
@@ -55,7 +55,7 @@ func (r *DashboardRepository) GetRecentActivity(db *gorm.DB, userID uint) ([]dto
 		GROUP BY p.id
 
 		ORDER BY timestamp DESC
-		LIMIT 10
+		LIMIT 5
 	`, userID, userID).Scan(&activities).Error
 
 	return activities, err
@@ -66,14 +66,31 @@ func (r *DashboardRepository) GetTopicProficiency(db *gorm.DB, userID uint) ([]d
 
 	err := db.Raw(`
 		SELECT
-			p.topic,
-			SUM(CASE WHEN ul.correct_answer THEN 1 ELSE 0 END) AS correct,
-			COUNT(*) AS total
-		FROM user_log ul
-		JOIN problem p ON ul.problem_id = p.id
-		WHERE ul.user_id = ?
-		GROUP BY p.topic
-	`, userID).Scan(&result).Error
+			topic,
+			SUM(correct) AS correct,
+			COUNT(*) AS total,
+			ROUND(SUM(correct) * 100.0 / COUNT(*), 2) AS percentage
+		FROM (
+			-- From problems
+			SELECT
+				p.topic AS topic,
+				CASE WHEN ul.correct_answer THEN 1 ELSE 0 END AS correct
+			FROM user_log ul
+			JOIN problem p ON ul.problem_id = p.id
+			WHERE ul.user_id = ? AND ul.from_quiz = FALSE
+
+			UNION ALL
+
+			-- From quiz questions
+			SELECT
+				q.topic AS topic,
+				CASE WHEN ul.correct_answer THEN 1 ELSE 0 END AS correct
+			FROM user_log ul
+			JOIN question q ON ul.question_id = q.id
+			WHERE ul.user_id = ? AND ul.from_quiz = TRUE
+		) AS combined
+		GROUP BY topic
+	`, userID, userID).Scan(&result).Error
 
 	return result, err
 }
@@ -83,16 +100,32 @@ func (r *DashboardRepository) GetChallengingTopics(db *gorm.DB, userID uint) ([]
 
 	err := db.Raw(`
 		SELECT
-			p.topic,
-			SUM(CASE WHEN ul.correct_answer = false THEN 1 ELSE 0 END) AS wrong,
+			topic,
+			SUM(wrong) AS wrongAnswers,
 			COUNT(*) AS total,
-			ROUND(100.0 * SUM(CASE WHEN ul.correct_answer = false THEN 1 ELSE 0 END)::float / COUNT(*), 2) AS percentage
-		FROM user_log ul
-		JOIN problem p ON ul.problem_id = p.id
-		WHERE ul.user_id = ?
-		GROUP BY p.topic
+			ROUND(SUM(wrong) * 100.0 / COUNT(*), 2) AS percentage
+		FROM (
+			-- Logs from problems
+			SELECT
+				p.topic AS topic,
+				CASE WHEN ul.correct_answer = false THEN 1 ELSE 0 END AS wrong
+			FROM user_log ul
+			JOIN problem p ON ul.problem_id = p.id
+			WHERE ul.user_id = ? AND ul.from_quiz = FALSE
+
+			UNION ALL
+
+			-- Logs from quiz questions
+			SELECT
+				q.topic AS topic,
+				CASE WHEN ul.correct_answer = false THEN 1 ELSE 0 END AS wrong
+			FROM user_log ul
+			JOIN question q ON ul.question_id = q.id
+			WHERE ul.user_id = ? AND ul.from_quiz = TRUE
+		) AS combined
+		GROUP BY topic
 		ORDER BY percentage DESC
-	`, userID).Scan(&result).Error
+	`, userID, userID).Scan(&result).Error
 
 	return result, err
 }

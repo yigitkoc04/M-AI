@@ -15,9 +15,10 @@ type RecentActivity struct {
 }
 
 type TopicProficiency struct {
-	Topic   string `json:"topic"`
-	Correct int64  `json:"correct"`
-	Total   int64  `json:"total"`
+	Topic      string  `json:"topic"`
+	Correct    int64   `json:"correct"`
+	Total      int64   `json:"total"`
+	Percentage float64 `json:"percentage"`
 }
 
 type ChallengingTopic struct {

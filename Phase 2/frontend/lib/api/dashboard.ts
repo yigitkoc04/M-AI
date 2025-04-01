@@ -8,9 +8,10 @@ export interface DashboardStats {
 }
 
 export interface RecentActivityItem {
-    quizId: number;
-    quizTitle: string;
-    completedAt: string;
+    id: number;
+    title: string;
+    type: string;
+    timestamp: string;
 }
 
 export interface TopicProficiencyItem {
