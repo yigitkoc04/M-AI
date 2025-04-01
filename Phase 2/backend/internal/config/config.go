@@ -23,6 +23,10 @@ type Config struct {
 		SecretKey string `mapstructure:"secret_key"`
 		Salt      string `mapstructure:"salt"`
 	}
+
+	OpanAi struct {
+		ApiKey string `mapstructure:"api_key"`
+	}
 }
 
 var AppConfig Config
