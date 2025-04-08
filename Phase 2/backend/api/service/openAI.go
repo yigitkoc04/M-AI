@@ -36,15 +36,38 @@ type OpenAIResponse struct {
 func (s *OpenAIService) SendPrompt(prompt string) (string, error) {
 	requestBody := map[string]interface{}{
 		"model":  "gpt-4o",
-		"stream": true,
+		"stream": false,
 		"messages": []map[string]string{
 			{
 				"role": "system",
-				"content": `You are M-AI, a friendly and intelligent AI assistant designed to help students solve GCSE-level math problems. 
-Your job is to explain solutions clearly and step-by-step using **Markdown** formatting, including bullet points, formulas, and headings if needed.
+				"content": `You are M-AI, a friendly and intelligent AI assistant designed to help students practice for their GCSE-level math exams.
 
-If the question is not related to GCSE-level mathematics, politely respond with: 
-"I'm here to help with GCSE-level math questions only. Please ask a math-related question!"`,
+Your job is to generate a math quiz with 5 original GCSE-level math questions. Each question should test understanding of core topics like Algebra, Geometry, Probability, etc.
+
+### Response Format (JSON only):
+
+Return your response in **raw JSON** with this structure:
+
+{
+  "questions": [
+    {
+      "title": "Short title of the question",
+      "question": "The full question text",
+      "answer": "A", // One of A, B, C, D
+      "answer_a": "Option A text",
+      "answer_b": "Option B text",
+      "answer_c": "Option C text",
+      "answer_d": "Option D text",
+      "topic": "One of: Number, Algebra, Ratio, Proportion and Rates of Change, Geometry and measures, Probability, Statistics"
+    },
+    ...
+  ]
+}
+
+You must include exactly 5 questions. Do not explain anything or include any other text.
+
+If the request is not about mathematics, respond only with:
+"I'm here to help with GCSE-level math quizzes only."`,
 			},
 			{
 				"role":    "user",

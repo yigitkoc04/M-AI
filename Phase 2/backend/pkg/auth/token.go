@@ -2,12 +2,11 @@ package auth
 
 import (
 	"errors"
-	"time"
-
 	"github.com/golang-jwt/jwt/v5"
+	"time"
 )
 
-const TokenExpiryDuration = time.Hour * 3
+const TokenExpiryDuration = time.Hour * 24
 
 func GenerateToken(userID uint, secretKey string) (string, error) {
 	claims := jwt.MapClaims{

@@ -72,6 +72,7 @@ func (s *AuthService) GetUserByID(userID uint) (model.User, error) {
 			return err
 		}
 		result = user
+		result.Password = ""
 		return nil
 	})
 	if err != nil {

@@ -104,16 +104,6 @@ export default function ResourcesPage() {
 
       <div className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <Tabs defaultValue="all" className="w-full sm:w-auto">
-            <TabsList className="w-full sm:w-auto bg-secondary/50 backdrop-blur-sm">
-              <TabsTrigger
-                value="all"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
-              >
-                All Resources
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
           <div className="flex flex-wrap gap-2">
             {levels.map((level) => (
               <Button
@@ -143,7 +133,7 @@ export default function ResourcesPage() {
               onClick={() => {
                 window.open(resource.link, "_blank");
               }}
-              className="flex flex-col shadow-soft hover-lift overflow-hidden"
+              className="flex flex-col shadow-soft hover-lift overflow-hidden cursor-pointer"
             >
               <div className="h-2 bg-gradient-to-r from-primary to-accent" />
               <CardHeader className="bg-muted/40">

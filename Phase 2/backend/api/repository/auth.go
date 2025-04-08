@@ -16,6 +16,7 @@ func NewAuthRepository() *AuthRepository {
 func (r *AuthRepository) CreateUser(db *gorm.DB, user *model.User) error {
 	return db.Create(user).Error
 }
+
 func (r *AuthRepository) GetUserByEmail(db *gorm.DB, email string) (model.User, error) {
 	var user model.User
 	err := db.Where("email = ? AND deleted_at IS NULL", email).First(&user).Error

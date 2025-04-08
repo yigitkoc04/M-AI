@@ -1,6 +1,7 @@
 package router
 
 import (
+	"M-AI/api/dto"
 	"M-AI/api/requests"
 	"M-AI/api/service"
 	"M-AI/api/utils"
@@ -23,6 +24,8 @@ func (r *QuizRouter) RegisterRoutes(router *gin.RouterGroup) {
 	{
 		quizGroup.POST("", r.CreateQuiz)
 		quizGroup.GET("", r.ListQuizzes)
+		quizGroup.POST("/complete", r.CompleteQuiz)
+		quizGroup.POST("/generate", r.GenerateAIQuiz)
 	}
 }
 
@@ -56,12 +59,70 @@ func (r *QuizRouter) ListQuizzes(c *gin.Context) {
 	}
 
 	search := c.Query("search")
+	filter := c.DefaultQuery("filter", "all")
 
-	quizzes, err := r.quizService.ListQuizzesWithUserStats(uint(userIDFloat), search)
+	quizzes, err := r.quizService.ListQuizzesWithUserStats(uint(userIDFloat), search, filter)
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, "Failed to list quizzes")
 		return
 	}
 
 	utils.SendSuccess(c, "Quizzes fetched successfully", quizzes)
+}
+
+func (r *QuizRouter) CompleteQuiz(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.SendError(c, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	userIDFloat, ok := userID.(float64)
+	if !ok {
+		utils.SendError(c, http.StatusInternalServerError, "Invalid user ID format")
+		return
+	}
+
+	var submission dto.QuizSubmission
+	if err := c.ShouldBindJSON(&submission); err != nil {
+		utils.SendError(c, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	submission.UserID = uint(userIDFloat)
+	if err := r.quizService.CompleteQuiz(submission); err != nil {
+		utils.SendError(c, http.StatusInternalServerError, "Failed to complete quiz")
+		return
+	}
+
+	utils.SendSuccess(c, "Quiz completed successfully", nil)
+}
+
+func (r *QuizRouter) GenerateAIQuiz(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.SendError(c, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	userIDFloat, ok := userID.(float64)
+	if !ok {
+		utils.SendError(c, http.StatusInternalServerError, "Invalid user ID format")
+		return
+	}
+
+	var req dto.AIQuizRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.SendError(c, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	req.UserID = uint(userIDFloat)
+	q, err := r.quizService.GenerateQuizFromPrompt(req)
+	if err != nil {
+		utils.SendError(c, http.StatusInternalServerError, "Failed to generate quiz")
+		return
+	}
+
+	utils.SendSuccess(c, "Quiz generated successfully", q)
 }

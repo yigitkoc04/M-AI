@@ -11,3 +11,7 @@ type Problem struct {
 	Title    string              `json:"title"`
 	Question string              `json:"question"`
 }
+
+func (p Problem) TableName() string {
+	return "problem"
+}
