@@ -196,14 +196,14 @@ export default function ProcessPage() {
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger
                 value="text"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
+                className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
               >
                 <PenLine className="h-4 w-4 mr-2" />
                 Type Problem
               </TabsTrigger>
               <TabsTrigger
                 value="image"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
+                className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white"
               >
                 <Image className="h-4 w-4 mr-2" />
                 Upload Image

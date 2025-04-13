@@ -89,11 +89,11 @@ function QuizList({
           onValueChange={(val) => setFilter(val as "all" | "completed")}
           className="w-full sm:w-auto"
         >
-          <TabsList className="w-full sm:w-auto overflow-x-auto bg-secondary/50 backdrop-blur-sm p-0 rounded-none">
+          <TabsList className="w-full sm:w-auto overflow-x-auto bg-secondary/50 backdrop-blur-sm p-0 rounded-md">
             <TabsTrigger
               value="all"
               className={cn(
-                "px-4 py-2",
+                "px-4 py-2 rounded-md",
                 filter === "all" && "border border-primary text-primary"
               )}
             >
@@ -102,7 +102,7 @@ function QuizList({
             <TabsTrigger
               value="completed"
               className={cn(
-                "px-4 py-2",
+                "px-4 py-2 rounded-md",
                 filter === "completed" && "border border-primary text-primary"
               )}
             >
