@@ -253,7 +253,12 @@ export function MarkdownSolution({ content, title = "Solution" }: MarkdownSoluti
                                                 // Special styling for math formulas
                                             }}
                                         >
-                                            {section.content}
+                                            { /* {section.content} */}
+                                            {section.content
+                                                // Convert \[ ... \] to $$ ... $$
+                                                .replace(/\\\[(.+?)\\\]/gs, (_, expr) => `$$${expr.trim()}$$`)
+                                                // Convert \( ... \) to $ ... $
+                                                .replace(/\\\((.+?)\\\)/gs, (_, expr) => `$${expr.trim()}$`)}
                                         </ReactMarkdown>
                                     </div>
                                 </div>
