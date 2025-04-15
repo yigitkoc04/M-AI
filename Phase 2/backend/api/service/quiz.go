@@ -153,7 +153,6 @@ func (s *QuizService) CompleteQuiz(submission dto.QuizSubmission) error {
 func (s *QuizService) GenerateQuizFromPrompt(req dto.AIQuizRequest) (dto.QuizWithStats, error) {
 	var q dto.QuizWithStats
 
-	// Step 1: Handle PromptType "struggle-areas"
 	if req.PromptType == "struggle-areas" {
 		proficiency, err := s.quizRepo.GetTopicProficiency(s.db, req.UserID)
 		if err != nil {
